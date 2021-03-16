@@ -25,21 +25,15 @@ $ fun deploy --use-ros --stack-name xxx -t template.packaged.yml
 ```
 
 上述命令将会创建如下资源：
-┌──────────────────────────────────────────┬──────────────────────┬────────┬──────────┐
-│ LogicalResourceId                        │ ResourceType         │ Action │ Property │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ RAMRole                                  │ ALIYUN::RAM::Role    │ Add    │          │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ demo-order-management                    │ ALIYUN::FC::Service  │ Add    │          │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ demo-order-managementget-canceled-orders │ ALIYUN::FC::Function │ Add    │          │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ demo-order-managementstock-management    │ ALIYUN::FC::Function │ Add    │          │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ demo-order-managementrefund              │ ALIYUN::FC::Function │ Add    │          │
-├──────────────────────────────────────────┼──────────────────────┼────────┼──────────┤
-│ demo-order-management-flow               │ ALIYUN::FNF::Flow    │ Add    │          │
-└──────────────────────────────────────────┴──────────────────────┴────────┴──────────┘
+
+| LogicalResourceId                        | ResourceType         | Action | Property |
+| ---------------------------------------- | -------------------- | ------ | -------- |
+| RAMRole                                  | ALIYUN::RAM::Role    | Add    |          |
+| demo-order-management                    | ALIYUN::FC::Service  | Add    |          |
+| demo-order-managementget-canceled-orders | ALIYUN::FC::Function | Add    |          |
+| demo-order-managementstock-management    | ALIYUN::FC::Function | Add    |          |
+| demo-order-managementrefund              | ALIYUN::FC::Function | Add    |          |
+| demo-order-management-flow               | ALIYUN::FNF::Flow    | Add    |          |
 
 ### 工程演示
 
