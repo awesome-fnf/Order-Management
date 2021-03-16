@@ -1,0 +1,152 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Transform: 'Aliyun::Serverless-2018-04-03'
+Resources:
+  RAMRole:
+    Type: 'ALIYUN::RAM::Role'
+    Properties:
+      RoleName:
+        'Fn::Replace':
+          - <random-suffix>:
+              Ref: 'ALIYUN::StackName'
+          - OrderManagementDemoRole-<random-suffix>
+      Description: RAM role for order management demo
+      AssumeRolePolicyDocument:
+        Version: 1
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - fc.aliyuncs.com
+                - fnf.aliyuncs.com
+      Policies:
+        - PolicyName:
+            'Fn::Replace':
+              - <random-suffix>:
+                  Ref: 'ALIYUN::StackName'
+              - OrderManagementDemoRAMPolicy-<random-suffix>
+          PolicyDocument:
+            Version: 1
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'fc:InvokeFunction'
+                Resource:
+                  - '*'
+  demo-order-management-flow:
+    Type: 'Aliyun::Serverless::Flow'
+    Properties:
+      Description: order management demo
+      Role:
+        'Fn::GetAtt':
+          - RAMRole
+          - Arn
+      Definition:
+        'Fn::Sub': |
+          version: v1
+          type: flow
+          steps:
+            - type: task
+              name: orders
+              resourceArn: '${demo-order-managementget-canceled-orders.ARN}'
+              outputMappings:
+                - target: order_ids
+                  source: $local.order_ids
+              retry:
+                - errors:
+                    - ErrorNeedsRetry
+                  intervalSeconds: 10
+                  maxAttempts: 3
+                  multiplier: 2
+                - errors:
+                    - FC.ResourceThrottled
+                    - FC.ResourceExhausted
+                    - FC.InternalServerError
+                    - FnF.TaskTimeout
+                    - FC.Unknown
+                  intervalSeconds: 3
+                  maxAttempts: 10
+                  multiplier: 2
+            - type: foreach
+              name: cancelorders
+              inputMappings:
+                - target: order_ids
+                  source: $local.order_ids
+              iterationMapping:
+                collection: $.order_ids
+                item: order_id
+              steps:
+                - type: task
+                  name: refund
+                  resourceArn: '${demo-order-managementrefund.ARN}'
+                  retry:
+                    - errors:
+                        - ErrorNeedsRetry
+                      intervalSeconds: 10
+                      maxAttempts: 3
+                      multiplier: 2
+                    - errors:
+                        - FC.ResourceThrottled
+                        - FC.ResourceExhausted
+                        - FC.InternalServerError
+                        - FnF.TaskTimeout
+                        - FC.Unknown
+                      intervalSeconds: 3
+                      maxAttempts: 10
+                      multiplier: 2
+                - type: task
+                  name: manageStock
+                  resourceArn: '${demo-order-managementstock-management.ARN}'
+                  retry:
+                    - errors:
+                        - ErrorNeedsRetry
+                      intervalSeconds: 10
+                      maxAttempts: 3
+                      multiplier: 2
+                    - errors:
+                        - FC.ResourceThrottled
+                        - FC.ResourceExhausted
+                        - FC.InternalServerError
+                        - FnF.TaskTimeout
+                        - FC.Unknown
+                      intervalSeconds: 3
+                      maxAttempts: 10
+                      multiplier: 2
+    DependsOn:
+      - demo-order-managementget-canceled-orders
+      - demo-order-managementrefund
+      - demo-order-managementstock-management
+  demo-order-management:
+    Type: 'Aliyun::Serverless::Service'
+    Properties:
+      Role:
+        'Fn::GetAtt':
+          - RAMRole
+          - Arn
+    get-canceled-orders:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 60
+        MemorySize: 256
+        CodeUri: >-
+          oss://fun-gen-cn-beijing-1608984631154627/094e101c21da6c5b14b06c4901fa17fb
+    refund:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: >-
+          oss://fun-gen-cn-beijing-1608984631154627/f5d629336d1b2e674784a3b70a53adc9
+    stock-management:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: >-
+          oss://fun-gen-cn-beijing-1608984631154627/0832a186c7f4a5edce7d67347aa76ae5

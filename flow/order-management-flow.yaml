@@ -1,0 +1,75 @@
+version: v1
+type: flow
+steps:
+  # 本步骤调用函数计算 get-canceled-orders.py，获取需要取消的订单 id 数据
+  - type: task
+    name: orders
+    resourceArn: !Ref demo-order-management/get-canceled-orders
+    outputMappings:
+      - target: order_ids
+        source: $local.order_ids
+    retry:
+      - errors:
+          - ErrorNeedsRetry
+        intervalSeconds: 10
+        maxAttempts: 3
+        multiplier: 2
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+        intervalSeconds: 3
+        maxAttempts: 10
+        multiplier: 2
+
+  # cancel 步骤，根据上一步获得的订单号并行处理。如果 cancel 过程对 refund 退款判断比较复杂，可以将判断单独
+  # 作为一个步骤，并用工作流提供的 choice 步骤对结果处理
+  - type: foreach
+    name: cancelorders
+    inputMappings:
+      - target: order_ids
+        source: $local.order_ids
+    iterationMapping:
+      collection: $.order_ids
+      item: order_id
+    steps:
+      - type: task
+        name: refund
+        resourceArn: !Ref demo-order-management/refund
+        retry:
+          - errors:
+              - ErrorNeedsRetry
+            intervalSeconds: 10
+            maxAttempts: 3
+            multiplier: 2
+          - errors:
+              - FC.ResourceThrottled
+              - FC.ResourceExhausted
+              - FC.InternalServerError
+              - FnF.TaskTimeout
+              - FC.Unknown
+            intervalSeconds: 3
+            maxAttempts: 10
+            multiplier: 2
+
+      # 库存管理步骤
+      - type: task
+        name: manageStock
+        resourceArn: !Ref demo-order-management/stock-management
+        retry:
+          - errors:
+              - ErrorNeedsRetry
+            intervalSeconds: 10
+            maxAttempts: 3
+            multiplier: 2
+          - errors:
+              - FC.ResourceThrottled
+              - FC.ResourceExhausted
+              - FC.InternalServerError
+              - FnF.TaskTimeout
+              - FC.Unknown
+            intervalSeconds: 3
+            maxAttempts: 10
+            multiplier: 2

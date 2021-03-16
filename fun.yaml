@@ -1,0 +1,80 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Transform: 'Aliyun::Serverless-2018-04-03'
+
+Resources:
+  RAMRole:
+    Type: ALIYUN::RAM::Role
+    Properties:
+      RoleName:
+        Fn::Replace:
+          - <random-suffix>:
+              Ref: ALIYUN::StackName
+          - OrderManagementDemoRole-<random-suffix>
+      Description: 'RAM role for order management demo'
+      AssumeRolePolicyDocument:
+        Version: 1
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - fc.aliyuncs.com
+                - fnf.aliyuncs.com
+      Policies:
+        - PolicyName:
+            Fn::Replace:
+              - <random-suffix>:
+                  Ref: ALIYUN::StackName
+              - OrderManagementDemoRAMPolicy-<random-suffix>
+          PolicyDocument:
+            Version: 1
+            Statement:
+              - Effect: Allow
+                Action:
+                  - fc:InvokeFunction
+                Resource:
+                  - '*'
+
+  demo-order-management-flow:
+    Type: 'Aliyun::Serverless::Flow'
+    Properties:
+      Description: 'order management demo'
+      Role:
+        Fn::GetAtt: 
+          - 'RAMRole'
+          - "Arn"
+      DefinitionUri: flow/order-management-flow.yaml
+  demo-order-management:
+    Type: 'Aliyun::Serverless::Service'
+    Properties:
+      Role:
+        Fn::GetAtt: 
+          - 'RAMRole'
+          - "Arn"
+    get-canceled-orders:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 60
+        MemorySize: 256
+        CodeUri: functions/get-canceled-orders
+
+    refund:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: functions/refund
+
+    stock-management:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: index.handler
+        Runtime: python3
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: functions/stock-management
+
